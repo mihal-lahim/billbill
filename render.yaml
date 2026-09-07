@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: billbill
+    runtime: node
+    rootDir: web
+    buildCommand: npm ci
+    startCommand: npm run dev
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
