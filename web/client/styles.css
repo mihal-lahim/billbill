@@ -9,3 +9,6 @@
 
 /* Use the full browser viewport instead of a fixed desktop canvas. */
 body{display:block}.game-shell,.title-screen{width:100%;max-width:none;min-height:100vh;box-shadow:none}.game-shell{padding-bottom:24px}.cities{width:min(1600px,100%);margin-inline:auto}.auction{width:min(1200px,100%);margin-inline:auto}.title-menu{width:min(620px,92%)}@media(min-width:1400px){:root{font-size:18px}.game-shell header{height:72px;padding-inline:clamp(24px,4vw,72px)}.cities{gap:28px;padding:28px clamp(28px,5vw,80px)}.city{padding:20px}.skyline{height:190px}.money-slot{height:56px}.auction{gap:24px}.round-result{width:min(900px,96%)}}
+
+/* Desktop expansion is horizontal only; preserve the original vertical scale. */
+body{display:grid;place-items:center}.game-shell,.title-screen{width:100%;max-width:none;min-height:min(720px,100vh);box-shadow:none}.game-shell{padding-bottom:0}@media(min-width:1400px){:root{font-size:16px}.game-shell header{height:64px;padding-inline:clamp(24px,4vw,72px)}.cities{gap:20px;padding:18px clamp(28px,5vw,80px)}.city{padding:14px}.skyline{height:150px}.money-slot{height:48px}.auction{gap:18px}.round-result{width:min(900px,96%)}}
