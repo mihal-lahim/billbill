@@ -8,7 +8,7 @@ export function validateName(raw) {
   const name = String(raw ?? '').trim();
   if (!name) return { ok: false, error: 'Please enter a name.' };
   if ([...name].length > 12) return { ok: false, error: 'Name is too long.' };
-  if (/\p{Cc}|[\r\n]/u.test(name)) return { ok: false, error: 'Name contains unsupported characters.' };
+  if (/[\p{Cc}\p{Cf}]|[\r\n]/u.test(name)) return { ok: false, error: 'Name contains unsupported characters.' };
   return { ok: true, value: name };
 }
 
@@ -35,3 +35,4 @@ export class BrowserSettingsStore {
     }));
   }
 }
+

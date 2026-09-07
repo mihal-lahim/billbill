@@ -6,7 +6,7 @@ export const BUILDINGS = [2,4,6,8,10,12,14,16,18,20];
 export function validateName(raw) {
   if (typeof raw !== 'string') return null;
   const value = raw.trim();
-  if (!value || [...value].length > 12 || /\p{Cc}|[\r\n]/u.test(value)) return null;
+  if (!value || [...value].length > 12 || /[\p{Cc}\p{Cf}]|[\r\n]/u.test(value)) return null;
   return value;
 }
 
@@ -94,3 +94,4 @@ export class Match {
     return { summaries, winner: summaries[0].points === summaries[1].points ? 0 : summaries[0].points > summaries[1].points ? 1 : 2 };
   }
 }
+

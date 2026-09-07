@@ -10,6 +10,7 @@ test('rules and name validation', () => {
   assert.equal(validateName(' ミハル '), 'ミハル');
   assert.equal(validateName('   '), null);
   assert.equal(validateName('1234567890123'), null);
+  assert.equal(validateName('safe\u200Blooking'), null);
 });
 
 test('server match consumes one card and hides pending bid', () => {
@@ -22,3 +23,4 @@ test('server match consumes one card and hides pending bid', () => {
   assert.equal(match.hands[2].includes(21), false);
   assert.throws(() => match.submit(1, 23));
 });
+
