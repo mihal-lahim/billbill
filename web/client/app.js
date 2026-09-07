@@ -110,7 +110,7 @@ function renderTitle() {
   app.innerHTML=`<section class="title-screen"><div class="cloud c1"></div><div class="cloud c2"></div><div class="brand"><h1>ビルビル</h1><p>BILL BILL</p></div><nav class="title-menu">${button('VS CPU','cpu','coral')}${button('VS PLAYER','online','blue')}${button('HOW TO PLAY','how','light')}${button('SETTINGS','settings','yellow')}${button('CREDITS','credits','light')}${button('FEEDBACK ↗','feedback','light')}</nav><p class="tagline">カードを選んで、あなただけの街をつくろう。</p><div class="ground"></div></section>`;
 }
 function renderDifficulty() {
-  app.innerHTML=shell(`<div class="panel centered"><h1>コンピューター難易度</h1><p>対戦する強さを選んでください</p><div class="stack">${button('かんたん','diff:EASY','blue')}${button('ふつう','diff:NORMAL','yellow')}${button('むずかしい','diff:HARD','coral')}${button('戻る','title','light')}</div></div>`,'コンピューター対戦');
+  app.innerHTML=shell(`<div class="panel centered"><h1>CPU難易度</h1><p>対戦する強さを選んでください</p><div class="stack">${button('かんたん','diff:EASY','blue')}${button('ふつう','diff:NORMAL','yellow')}${button('むずかしい','diff:HARD','coral')}${button('戻る','title','light')}</div></div>`,'CPU対戦');
 }
 function renderLocal() {
   const p1name=settings.playerName;
@@ -118,18 +118,18 @@ function renderLocal() {
     if (!game.completionTracked) { game.completionTracked=true; track('cpuMatchesCompleted'); }
     const a=summary(game,'p1'),b=summary(game,'p2'); let ap=0,bp=0;
     for(const k of ['count','value','cash']) { if(a[k]>b[k])ap++; else if(b[k]>a[k])bp++; }
-    app.innerHTML=shell(`<div class="panel centered"><h1>${ap===bp?'引き分け':ap>bp?'あなたの勝ち！':'コンピューターの勝ち'}</h1><div class="score-grid"><div><h2>${esc(p1name)}</h2><p>建物枚数 ${a.count}</p><p>建物合計 ${a.value}</p><p>残金 ${a.cash}</p><strong>${ap} ポイント</strong></div><div><h2>コンピューター</h2><p>建物枚数 ${b.count}</p><p>建物合計 ${b.value}</p><p>残金 ${b.cash}</p><strong>${bp} ポイント</strong></div></div>${button('もう一度遊ぶ','restart','coral')}${button('タイトルへ','title','light')}</div>`,'最終結果'); return;
+    app.innerHTML=shell(`<div class="panel centered"><h1>${ap===bp?'引き分け':ap>bp?'あなたの勝ち！':'CPUの勝ち'}</h1><div class="score-grid"><div><h2>${esc(p1name)}</h2><p>建物枚数 ${a.count}</p><p>建物合計 ${a.value}</p><p>残金 ${a.cash}</p><strong>${ap} ポイント</strong></div><div><h2>CPU</h2><p>建物枚数 ${b.count}</p><p>建物合計 ${b.value}</p><p>残金 ${b.cash}</p><strong>${bp} ポイント</strong></div></div>${button('もう一度遊ぶ','restart','coral')}${button('タイトルへ','title','light')}</div>`,'最終結果'); return;
   }
   const result=game.result, bidding=!result;
   const p1Options={selectable:bidding,justAcquired:result?.winner===1,highlightBuilding:result?.winner===1?result.building:null};
   const p2Options={justAcquired:result?.winner===2,highlightBuilding:result?.winner===2?result.building:null};
-  app.innerHTML=shell(`<div class="toolbar">ラウンド ${Math.min(game.round,10)} / 10 ${button('対戦を終了','leave-local','tiny')}</div><div class="cities">${city(game.p1,p1name,true,p1Options)}${city(game.p2,`コンピューター・${difficultyLabel(difficulty)}`,false,p2Options)}</div><div class="auction">${result?`${resultPanel(result,p1name,'コンピューター')}${button(game.round===10?'最終結果':'次へ','next','coral')}`:`<div class="property"><small>今回の建物</small><b>${game.building}</b><span>建物</span></div><h2>お金カードを1枚選択</h2>${button('決定','bid','coral')}`}</div>`,'コンピューター対戦');
+  app.innerHTML=shell(`<div class="toolbar">ラウンド ${Math.min(game.round,10)} / 10 ${button('対戦を終了','leave-local','tiny')}</div><div class="cities">${city(game.p1,p1name,true,p1Options)}${city(game.p2,`CPU・${difficultyLabel(difficulty)}`,false,p2Options)}</div><div class="auction">${result?`${resultPanel(result,p1name,'CPU')}${button(game.round===10?'最終結果':'次へ','next','coral')}`:`<div class="property"><small>今回の建物</small><b>${game.building}</b></div><h2>お金カードを1枚選択</h2>${button('決定','bid','coral')}`}</div>`,'CPU対戦');
 }
 function renderSettings() {
   app.innerHTML=shell(`<div class="panel settings"><h1>設定</h1><label>プレイヤー名<input id="player-name" type="text" maxlength="12" value="${esc(settings.playerName)}"><small id="name-error">入力後にエンターキー、または枠外をクリックして保存</small></label><label>マスター音量 <output>${settings.masterVolume}%</output><input id="volume" type="range" min="0" max="100" value="${settings.masterVolume}"></label><div class="setting-row"><span>ミュート <small>現在: ${settings.muted?'オン':'オフ'}</small></span><button class="btn ${settings.muted?'blue':'coral'}" data-action="mute" aria-pressed="${settings.muted}">${settings.muted?'オフ':'オン'}</button></div><div class="menu-grid">${button('遊び方','how','yellow')}${button('クレジット','credits','light')}${button('感想・不具合報告 ↗','feedback','coral')}${button('戻る','back','light')}</div></div>`,'設定');
 }
 function renderHow() {
-  app.innerHTML=shell(`<div class="panel rules"><h1>遊び方</h1><ol><li>毎ラウンド、建物カードが1枚公開されます。</li><li>両プレイヤーがお金カードを1枚選びます。</li><li>建物価格より高く、相手より高い札を出した側が獲得します。</li><li>使用した札は勝敗に関係なく消費されます。</li><li>同額、または両者とも建物価格以下なら誰も獲得しません。</li><li>全10ラウンド後、建物枚数・価値合計・残金の3項目で勝敗を決めます。</li></ol><div class="example"><span class="money static">15</span><b>＞</b><span class="property small"><b>12</b></span><b>＆</b><span class="money static red">13</span><p>15は建物12より高く、相手の13より高いので建物を獲得！</p></div>${button('戻る','back','blue')}</div>`,'遊び方');
+  app.innerHTML=shell(`<div class="panel rules"><h1>遊び方</h1><ol><li>毎ラウンド、建物カードが1枚公開されます。</li><li>両プレイヤーがお金カードを1枚選びます。</li><li>建物価格より高く、相手より高いカードを出した側が獲得します。</li><li>使用したカードは勝敗に関係なく消費されます。</li><li>同額、または両者とも建物価格以下なら誰も獲得しません。</li><li>全10ラウンド後、建物枚数・価値合計・残金の3項目で勝敗を決めます。</li></ol><div class="example"><span class="money static">15</span><b>＞</b><span class="property small"><b>12</b></span><b>＆</b><span class="money static red">13</span><p>15は建物12より高く、相手の13より高いので建物を獲得！</p></div>${button('戻る','back','blue')}</div>`,'遊び方');
 }
 function renderCredits() { app.innerHTML=shell(`<div class="panel centered credits"><h1>クレジット</h1><p>制作者</p><h2>${esc(CONFIG.creator)}</h2><a class="social-link" href="${esc(CONFIG.creatorSocialUrl)}" target="_blank" rel="noopener noreferrer">X（旧ツイッター）@MihaLseisaku ↗</a>${button('戻る','back','blue')}</div>`,'クレジット'); }
 function renderOnlineMenu() { app.innerHTML=shell(`<div class="panel centered"><h1>オンライン対戦</h1><p>あなたの名前<br><strong>${esc(settings.playerName)}</strong></p><div class="stack">${button('ランダムマッチ','random','coral')}${button('ルームマッチ','room','blue')}${button('戻る','title','light')}</div></div>`,'対人戦'); }
@@ -148,7 +148,7 @@ function renderOnlineGame() {
   const otherOptions={justAcquired:result?.winner===other,highlightBuilding:result?.winner===other?result.building:null};
   const firstName=s.players[you-1].name,secondName=s.players[other-1].name;
   const orderedResult=result&&you===2?{...result,p1Bid:result.p2Bid,p2Bid:result.p1Bid,winner:result.winner===1?2:result.winner===2?1:0}:result;
-  app.innerHTML=shell(`<div class="toolbar">ラウンド ${displayRound} / 10 ${button('対戦を終了','leave-match','tiny')}</div><div class="cities">${city(p1,firstName,true,myOptions)}${city(p2,secondName,false,otherOptions)}</div><div class="auction">${result?`${resultPanel(orderedResult,firstName,secondName)}${button('次へ','online-next','coral')}`:`<div class="property"><small>今回の建物</small><b>${s.currentBuilding ?? '-'}</b><span>建物</span></div><h2>${s.submitted?'相手の入札を待っています…':'お金カードを1枚選択'}</h2>${s.submitted?'':`<button class="btn coral" data-action="online-bid" ${online.selectedCard==null?'disabled':''}>決定</button>`}`}</div>`,'オンライン対戦');
+  app.innerHTML=shell(`<div class="toolbar">ラウンド ${displayRound} / 10 ${button('対戦を終了','leave-match','tiny')}</div><div class="cities">${city(p1,firstName,true,myOptions)}${city(p2,secondName,false,otherOptions)}</div><div class="auction">${result?`${resultPanel(orderedResult,firstName,secondName)}${button('次へ','online-next','coral')}`:`<div class="property"><small>今回の建物</small><b>${s.currentBuilding ?? '-'}</b></div><h2>${s.submitted?'相手の入札を待っています…':'お金カードを1枚選択'}</h2>${s.submitted?'':`<button class="btn coral" data-action="online-bid" ${online.selectedCard==null?'disabled':''}>決定</button>`}`}</div>`,'オンライン対戦');
 }
 function renderOnlineFinal() {
   const final=online.final, s=online.match, you=s.you, other=you===1?2:1;
@@ -196,7 +196,7 @@ app.addEventListener('click', e => {
   else if(action.startsWith('diff:')){difficulty=action.split(':')[1];newLocalGame();track('cpuMatchesStarted');screen='local';}
   else if(action==='bid'&&game?.selected!=null){if(wasmCore&&game.wasm){wasmCore.confirm();game=wasmCore.state();if(game.result?.winner)sound('billGet');}else finishLocalRound();}
   else if(action==='next'){if(wasmCore&&game.wasm){wasmCore.advance();game=wasmCore.state();if(game.phase==='bid')sound('opencard');}else if(game.round===10)game.phase='final';else{game.round++;game.building=game.deck[game.round-1];game.result=null;game.phase='bid';sound('opencard');}}
-  else if(action==='leave-local'){if(confirm('コンピューター対戦を終了してタイトルへ戻りますか？')){game=null;screen='title';screenHistory.length=0;}}
+  else if(action==='leave-local'){if(confirm('CPU対戦を終了してタイトルへ戻りますか？')){game=null;screen='title';screenHistory.length=0;}}
   else if(action==='restart'){if(confirm('対戦を最初からやり直しますか？')){if(wasmCore&&game?.wasm){wasmCore.restart();game=wasmCore.state();sound('opencard');}else newLocalGame();}}
   else if(action==='settings')openScreen('settings');
   else if(action==='how')openScreen('how');
@@ -271,5 +271,6 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
+
 
 
