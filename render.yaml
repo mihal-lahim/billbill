@@ -2,6 +2,7 @@ services:
   - type: web
     name: billbill
     runtime: node
+    plan: free
     rootDir: web
     buildCommand: npm ci
     startCommand: npm run dev
