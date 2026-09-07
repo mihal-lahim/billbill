@@ -131,7 +131,7 @@ function renderSettings() {
 function renderHow() {
   app.innerHTML=shell(`<div class="panel rules"><h1>遊び方</h1><ol><li>毎ラウンド、建物カードが1枚公開されます。</li><li>両プレイヤーがお金カードを1枚選びます。</li><li>建物価格より高く、相手より高い札を出した側が獲得します。</li><li>使用した札は勝敗に関係なく消費されます。</li><li>同額、または両者とも建物価格以下なら誰も獲得しません。</li><li>全10ラウンド後、建物枚数・価値合計・残金の3項目で勝敗を決めます。</li></ol><div class="example"><span class="money static">15</span><b>＞</b><span class="property small"><b>12</b></span><b>＆</b><span class="money static red">13</span><p>15は建物12より高く、相手の13より高いので建物を獲得！</p></div>${button('戻る','back','blue')}</div>`,'遊び方');
 }
-function renderCredits() { app.innerHTML=shell(`<div class="panel centered credits"><h1>クレジット</h1><p>制作者</p><h2>${esc(CONFIG.creator)}</h2><a class="social-link" href="${esc(CONFIG.creatorSocialUrl)}" target="_blank" rel="noopener noreferrer">X（旧ツイッター）@Mih4L_ ↗</a>${button('戻る','back','blue')}</div>`,'クレジット'); }
+function renderCredits() { app.innerHTML=shell(`<div class="panel centered credits"><h1>クレジット</h1><p>制作者</p><h2>${esc(CONFIG.creator)}</h2><a class="social-link" href="${esc(CONFIG.creatorSocialUrl)}" target="_blank" rel="noopener noreferrer">X（旧ツイッター）@MihaLseisaku ↗</a>${button('戻る','back','blue')}</div>`,'クレジット'); }
 function renderOnlineMenu() { app.innerHTML=shell(`<div class="panel centered"><h1>オンライン対戦</h1><p>あなたの名前<br><strong>${esc(settings.playerName)}</strong></p><div class="stack">${button('ランダムマッチ','random','coral')}${button('ルームマッチ','room','blue')}${button('戻る','title','light')}</div></div>`,'対人戦'); }
 function renderRandom() { app.innerHTML=shell(`<div class="panel centered"><h1>ランダムマッチ</h1><p>あなたの名前<br><strong>${esc(settings.playerName)}</strong></p><div class="waiting">待機中：${esc(online.waiting)}人</div><p>${esc(online.status)}</p>${online.status?button('キャンセル','cancel-search','light'):button('対戦相手を探す','find','coral')}${button('戻る','random-back','light')}<p class="error">${esc(online.error)}</p></div>`,'オンライン対戦'); }
 function renderRoom() { app.innerHTML=shell(`<div class="panel centered"><h1>ルームマッチ</h1><p>あなたの名前<br><strong>${esc(settings.playerName)}</strong></p>${button('ルームを作る','create-room','coral')}${button('ルームに参加','join-room','blue')}${button('戻る','online','light')}</div>`,'オンライン対戦'); }
@@ -271,4 +271,5 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
+
 
