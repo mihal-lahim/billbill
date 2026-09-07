@@ -25,7 +25,7 @@ export class Analytics {
   }
   record(event) {
     if (!ALLOWED_EVENTS.has(event)) return false;
-    void this.flushOverdue(); this.data.counters[event] = (this.data.counters[event] || 0) + 1; this.queueSave(); return true;
+    this.data.counters[event] = (this.data.counters[event] || 0) + 1; this.queueSave(); return true;
   }
   queueSave() {
     this.saveQueue = this.saveQueue.then(async () => { await mkdir(dirname(this.file), { recursive: true }); const temp = `${this.file}.tmp`; await writeFile(temp, JSON.stringify(this.data), 'utf8'); await rename(temp, this.file); }).catch(error => console.warn('Analytics save failed:', error.message));
@@ -46,3 +46,4 @@ export class Analytics {
   }
 }
 export { japanDate, nextReportDelay };
+
