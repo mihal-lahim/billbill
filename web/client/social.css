@@ -1,0 +1,18 @@
+.social-link {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto 28px;
+  padding: 11px 18px;
+  border: 2px solid #26364d;
+  border-radius: 12px;
+  background: #d5f4fc;
+  color: #26364d;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.social-link:hover,
+.social-link:focus-visible {
+  background: #67caee;
+}

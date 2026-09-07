@@ -1,0 +1,28 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.tlog
+*.lastbuildstate
+
+# Native and Web build output
+x64/
+Win32/
+build-web/
+TownMakerProject/x64/
+
+# JavaScript dependencies
+web/node_modules/
+
+# Local runtime data
+settings.cfg
+BattleData/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

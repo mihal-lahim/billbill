@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="TownMakerProject.vcxproj" Id="29fbe5ec-df90-4c72-a2cc-188c7fd89b3f" />
+</Solution>
