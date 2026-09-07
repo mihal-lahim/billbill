@@ -98,7 +98,7 @@ function moneyRack(player, { selectable=false, onlineCards=false, disabled=false
   }).join('')}</div>`;
 }
 function city(player, name, active=false, options={}) {
-  const buildings=player.buildings.map((v,i)=>`<span class="building ${options.highlightBuilding===v?'new-building':''}" style="--h:${45+v*3}px;--c:${i%2?'#ff786d':'#49aee8'}"><b>${v}</b></span>`).join('');
+  const buildings=player.buildings.map((v,i)=>{ const tier=v<=6?'shop':v<=12?'midrise':v<=16?'highrise':'tower'; const colors=['#ff786d','#49aee8','#f2b84b','#7bc67b','#a88be0']; return `<span class="building ${tier} ${options.highlightBuilding===v?'new-building':''}" style="--h:${38+v*3.7}px;--c:${colors[(v/2-1)%colors.length]}" title="BUILDING ${v}"><i aria-hidden="true"></i><b>${v}</b></span>`; }).join('');
   return `<article class="city ${active?'active':''} ${options.justAcquired?'just-acquired':''}"><h3>${esc(name)}</h3><div class="skyline">${buildings || '<span class="empty-city">まだ建物がありません</span>'}</div><p>建物 ${player.buildings.length}棟 ・ 合計 ${player.buildings.reduce((a,b)=>a+b,0)}</p><h4>MONEY CARDS</h4>${moneyRack(player,options)}</article>`;
 }
 function resultPanel(result, player1Name, player2Name) {
@@ -267,4 +267,6 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
+
+
 
