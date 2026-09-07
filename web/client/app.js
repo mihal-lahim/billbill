@@ -92,7 +92,7 @@ function shell(content, title='') { return `<section class="game-shell"><header>
 function moneyRack(player, { selectable=false, onlineCards=false, disabled=false }={}) {
   return `<div class="money-rack" aria-label="残りお金カード">${MONEY.map(value => {
     const available=player.hand.includes(value);
-    const selected=!onlineCards&&game?.selected===value;
+    const selected=selectable&&!onlineCards&&game?.selected===value;
     const attr=available&&selectable&&!disabled ? (onlineCards?`data-online-card="${value}"`:`data-card="${value}"`) : 'disabled';
     return `<button class="money-slot ${available?'available':'used'} ${selected?'selected':''}" ${attr} aria-label="${value}${available?'':' 使用済み'}"><b>${value}</b>${available?'':'<span>×</span>'}</button>`;
   }).join('')}</div>`;
@@ -267,6 +267,7 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
+
 
 
 
