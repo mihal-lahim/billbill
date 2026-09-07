@@ -5,6 +5,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Match, validateName } from './game.js';
+import { Analytics } from './analytics.js';
 
 const root = fileURLToPath(new URL('../client/', import.meta.url));
 const port = Number(process.env.PORT || 8080);
@@ -12,6 +13,10 @@ const sessions = new Map();
 const queue = [];
 const rooms = new Map();
 const matches = new Map();
+const analytics = new Analytics({
+  file: join(process.env.RENDER_DISK_PATH || join(process.cwd(), 'data'), 'analytics.json'),
+  webhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
+});
 const contentTypes = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.wasm':'application/wasm', '.mp3':'audio/mpeg' };
 
 function send(ws, type, payload = {}) {
@@ -36,6 +41,7 @@ function startMatch(ids) {
   const id = randomBytes(12).toString('hex');
   const match = new Match(id, players.map(p => ({ id: p.id, name: p.name })));
   matches.set(id, match);
+  analytics.record('onlineMatchesStarted');
   players.forEach((p, i) => {
     p.matchId = id;
     p.playerNumber = i + 1;
@@ -52,6 +58,13 @@ function peerFor(session) {
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://local');
+    if (url.pathname === '/api/analytics' && req.method === 'POST') {
+      let body = '';
+      for await (const chunk of req) { body += chunk; if (body.length > 4096) throw new Error('request too large'); }
+      const event = JSON.parse(body || '{}').event;
+      if (!analytics.record(event)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: false })); }
+      res.writeHead(204, { 'cache-control': 'no-store' }); return res.end();
+    }
     const relative = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
     const path = normalize(join(root, relative));
     if (!path.startsWith(root)) throw new Error('invalid path');
@@ -115,6 +128,7 @@ wss.on('connection', ws => {
             send(target.ws, 'roundResult', { result, state: match.publicState(p) });
             if (match.finished) send(target.ws, 'gameResult', { result: match.finalResult(), state: match.publicState(p) });
           }
+          if (match.finished) analytics.record('onlineMatchesCompleted');
         }
       } else if (msg.type === 'leaveMatch') {
         const peer = peerFor(session);
@@ -128,10 +142,14 @@ wss.on('connection', ws => {
     removeFromQueue(id);
     if (session.roomCode) rooms.delete(session.roomCode);
     const peer = peerFor(session);
-    if (peer) send(peer.ws, 'opponentDisconnected');
+    if (peer) { send(peer.ws, 'opponentDisconnected'); analytics.record('disconnects'); }
     if (session.matchId) matches.delete(session.matchId);
     sessions.delete(id);
   });
 });
 
-server.listen(port, () => console.log(`BILL BILL: http://localhost:${port}`));
+await analytics.init();
+server.listen(port, () => console.log(`BILL BILL: http://localhost:${port} (Discord reports: ${process.env.DISCORD_WEBHOOK_URL ? 'enabled' : 'disabled'})`));
+
+
+

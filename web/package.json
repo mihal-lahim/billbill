@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "node server/server.js",
-    "test": "node --test server/server.test.js server/integration.test.js"
+    "test": "node --test server/*.test.js"
   },
   "dependencies": {
     "ws": "^8.18.3"
   }
 }
+

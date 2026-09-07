@@ -16,6 +16,11 @@ let network = null;
 let wasmCore = null;
 let online = { waiting: '--', status: '', roomCode: '', error: '', match: null, result: null };
 
+function track(event) {
+  fetch('/api/analytics', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({event}), keepalive: true }).catch(() => {});
+}
+track('pageViews');
+
 function esc(value) {
   return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 }
@@ -95,6 +100,7 @@ function renderDifficulty() {
 function renderLocal() {
   const p1name=settings.playerName;
   if(game.phase==='final') {
+    if (!game.completionTracked) { game.completionTracked=true; track('cpuMatchesCompleted'); }
     const a=summary(game,'p1'),b=summary(game,'p2'); let ap=0,bp=0;
     for(const k of ['count','value','cash']) { if(a[k]>b[k])ap++; else if(b[k]>a[k])bp++; }
     app.innerHTML=shell(`<div class="panel centered"><h1>${ap===bp?'DRAW!':ap>bp?'YOU WIN!':'CPU WINS!'}</h1><div class="score-grid"><div><h2>${esc(p1name)}</h2><p>建物枚数 ${a.count}</p><p>建物合計 ${a.value}</p><p>残金 ${a.cash}</p><strong>${ap} POINTS</strong></div><div><h2>CPU</h2><p>建物枚数 ${b.count}</p><p>建物合計 ${b.value}</p><p>残金 ${b.cash}</p><strong>${bp} POINTS</strong></div></div>${button('PLAY AGAIN','restart','coral')}${button('TITLE','title','light')}</div>`,'FINAL RESULT'); return;
@@ -164,7 +170,7 @@ app.addEventListener('click', e => {
   const el=e.target.closest('[data-action]'); if(!el)return;
   const action=el.dataset.action; sound('kettei'); online.error='';
   if(action==='cpu')screen='difficulty';
-  else if(action.startsWith('diff:')){difficulty=action.split(':')[1];newLocalGame();screen='local';}
+  else if(action.startsWith('diff:')){difficulty=action.split(':')[1];newLocalGame();track('cpuMatchesStarted');screen='local';}
   else if(action==='bid'&&game?.selected!=null){if(wasmCore&&game.wasm){wasmCore.confirm();game=wasmCore.state();if(game.result?.winner)sound('billGet');}else finishLocalRound();}
   else if(action==='next'){if(wasmCore&&game.wasm){wasmCore.advance();game=wasmCore.state();if(game.phase==='bid')sound('opencard');}else if(game.round===10)game.phase='final';else{game.round++;game.building=game.deck[game.round-1];game.result=null;game.phase='bid';sound('opencard');}}
   else if(action==='restart'){if(confirm('対戦を最初からやり直しますか？')){if(wasmCore&&game?.wasm){wasmCore.restart();game=wasmCore.state();sound('opencard');}else newLocalGame();}}
@@ -234,3 +240,4 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
+
