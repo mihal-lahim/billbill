@@ -56,9 +56,9 @@ export class Match {
   }
 
   submit(player, card) {
-    if (this.finished || ![1, 2].includes(player)) throw new Error('Bidding is closed.');
-    if (this.bids.has(player)) throw new Error('You already submitted this round.');
-    if (!Number.isInteger(card) || !this.hands[player].includes(card)) throw new Error('That card is not available.');
+    if (this.finished || ![1, 2].includes(player)) throw new Error('入札は締め切られています。');
+    if (this.bids.has(player)) throw new Error('このラウンドではすでに入札済みです。');
+    if (!Number.isInteger(card) || !this.hands[player].includes(card)) throw new Error('そのカードは使用できません。');
     this.bids.set(player, card);
     if (this.bids.size < 2) return null;
 

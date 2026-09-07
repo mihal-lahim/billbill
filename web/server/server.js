@@ -107,13 +107,13 @@ wss.on('connection', ws => {
   send(ws, 'connected', { sessionId: id, waiting: queue.length });
 
   ws.on('message', raw => {
-    if (!messageRate.allow(id)) { send(ws, 'error', { message: 'Too many requests.' }); return ws.close(1008, 'Rate limit'); }
+    if (!messageRate.allow(id)) { send(ws, 'error', { message: '操作が多すぎます。しばらく待ってください。' }); return ws.close(1008, 'Rate limit'); }
     let msg;
-    try { msg = JSON.parse(String(raw)); } catch { return send(ws, 'error', { message: 'Invalid message.' }); }
+    try { msg = JSON.parse(String(raw)); } catch { return send(ws, 'error', { message: '無効な操作です。' }); }
     try {
       if (msg.type === 'setPlayerName') {
         const name = validateName(msg.name);
-        if (!name) throw new Error('Invalid player name.');
+        if (!name) throw new Error('プレイヤー名が無効です。');
         session.name = name;
         send(ws, 'nameAccepted', { name });
       } else if (msg.type === 'getQueueStatus') {
@@ -126,21 +126,21 @@ wss.on('connection', ws => {
       } else if (msg.type === 'leaveQueue') {
         removeFromQueue(id);
       } else if (msg.type === 'createRoom') {
-        if (session.matchId) throw new Error('Already in a match.');
+        if (session.matchId) throw new Error('すでに対戦中です。');
         if (session.roomCode) rooms.delete(session.roomCode);
         const code = roomCode();
         rooms.set(code, { hostId: id, closed: false });
         session.roomCode = code;
         send(ws, 'roomCreated', { code, host: session.name });
       } else if (msg.type === 'joinRoom') {
-        if (!roomJoinRate.allow(id)) throw new Error('Too many room attempts.');
-        if (session.matchId) throw new Error('Already in a match.');
-        if (!/^\d{6}$/.test(String(msg.code || ''))) throw new Error('Invalid room code.');
+        if (!roomJoinRate.allow(id)) throw new Error('ルーム参加の試行回数が多すぎます。しばらく待ってください。');
+        if (session.matchId) throw new Error('すでに対戦中です。');
+        if (!/^\d{6}$/.test(String(msg.code || ''))) throw new Error('ルームコードが無効です。');
         const room = rooms.get(String(msg.code));
-        if (!room) throw new Error('Room does not exist.');
-        if (room.hostId === id) throw new Error('Cannot join your own room.');
-        if (room.closed) throw new Error('Room has ended.');
-        if (room.guestId) throw new Error('Room is full.');
+        if (!room) throw new Error('ルームが見つかりません。');
+        if (room.hostId === id) throw new Error('自分で作成したルームには参加できません。');
+        if (room.closed) throw new Error('このルームは終了しています。');
+        if (room.guestId) throw new Error('このルームは満員です。');
         room.guestId = id; room.closed = true;
         startMatch([room.hostId, id]);
         rooms.delete(String(msg.code));
@@ -149,7 +149,7 @@ wss.on('connection', ws => {
         session.roomCode = null;
       } else if (msg.type === 'submitBid') {
         const match = matches.get(msg.matchId);
-        if (!match || match.id !== session.matchId) throw new Error('Match is invalid.');
+        if (!match || match.id !== session.matchId) throw new Error('対戦情報が無効です。');
         const result = match.submit(session.playerNumber, msg.card);
         send(ws, 'bidAccepted');
         if (result) {
@@ -185,5 +185,4 @@ wss.on('connection', ws => {
 
 await analytics.init();
 server.listen(port, () => console.log(`BILL BILL: http://localhost:${port} (Discord reports: ${process.env.DISCORD_WEBHOOK_URL ? 'enabled' : 'disabled'})`));
-
 

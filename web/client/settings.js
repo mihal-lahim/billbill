@@ -1,14 +1,14 @@
 const KEY = 'billbill.settings.v1';
 
 export function guestName() {
-  return `Guest${Math.floor(1000 + Math.random() * 9000)}`;
+  return `ゲスト${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 export function validateName(raw) {
   const name = String(raw ?? '').trim();
-  if (!name) return { ok: false, error: 'Please enter a name.' };
-  if ([...name].length > 12) return { ok: false, error: 'Name is too long.' };
-  if (/[\p{Cc}\p{Cf}]|[\r\n]/u.test(name)) return { ok: false, error: 'Name contains unsupported characters.' };
+  if (!name) return { ok: false, error: '名前を入力してください。' };
+  if ([...name].length > 12) return { ok: false, error: '名前は12文字以内で入力してください。' };
+  if (/[\p{Cc}\p{Cf}]|[\r\n]/u.test(name)) return { ok: false, error: '使用できない文字が含まれています。' };
   return { ok: true, value: name };
 }
 
