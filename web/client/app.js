@@ -16,7 +16,7 @@ let game = null;
 let difficulty = 'NORMAL';
 let network = null;
 let wasmCore = null;
-let online = { waiting: '--', status: '', roomCode: '', error: '', match: null, result: null };
+let online = { waiting: '--', status: '', roomCode: '', error: '', match: null, result: null, selectedCard: null };
 
 function track(event) {
   fetch('/api/analytics', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({event}), keepalive: true }).catch(() => {});
@@ -89,10 +89,10 @@ function finishLocalRound() {
 }
 function button(label, action, cls='') { return `<button class="btn ${cls}" data-action="${action}">${label}</button>`; }
 function shell(content, title='') { return `<section class="game-shell"><header><div class="mini-logo">ビルビル <small>BILL BILL</small></div><span>${title}</span></header>${content}</section>`; }
-function moneyRack(player, { selectable=false, onlineCards=false, disabled=false }={}) {
+function moneyRack(player, { selectable=false, onlineCards=false, disabled=false, selectedCard=null }={}) {
   return `<div class="money-rack" aria-label="残りお金カード">${MONEY.map(value => {
     const available=player.hand.includes(value);
-    const selected=selectable&&!onlineCards&&game?.selected===value;
+    const selected=selectable&&(onlineCards?selectedCard===value:game?.selected===value);
     const attr=available&&selectable&&!disabled ? (onlineCards?`data-online-card="${value}"`:`data-card="${value}"`) : 'disabled';
     return `<button class="money-slot ${available?'available':'used'} ${selected?'selected':''}" ${attr} aria-label="${value}${available?'':' 使用済み'}"><b>${value}</b>${available?'':'<span>×</span>'}</button>`;
   }).join('')}</div>`;
@@ -122,7 +122,7 @@ function renderLocal() {
   const result=game.result, bidding=!result;
   const p1Options={selectable:bidding,justAcquired:result?.winner===1,highlightBuilding:result?.winner===1?result.building:null};
   const p2Options={justAcquired:result?.winner===2,highlightBuilding:result?.winner===2?result.building:null};
-  app.innerHTML=shell(`<div class="toolbar">ROUND ${Math.min(game.round,10)} / 10 ${button('RESTART','restart','tiny')}</div><div class="cities">${city(game.p1,p1name,true,p1Options)}${city(game.p2,`CPU · ${difficulty}`,false,p2Options)}</div><div class="auction">${result?`${resultPanel(result,p1name,'CPU')}${button(game.round===10?'FINAL RESULT':'NEXT','next','coral')}`:`<div class="property"><small>FOR SALE</small><b>${game.building}</b><span>BUILDING</span></div><h2>お金カードを1枚選択</h2>${button('決定 / BID!','bid','coral')}`}</div>`,'VS CPU');
+  app.innerHTML=shell(`<div class="toolbar">ROUND ${Math.min(game.round,10)} / 10 ${button('LEAVE MATCH','leave-local','tiny')}</div><div class="cities">${city(game.p1,p1name,true,p1Options)}${city(game.p2,`CPU · ${difficulty}`,false,p2Options)}</div><div class="auction">${result?`${resultPanel(result,p1name,'CPU')}${button(game.round===10?'FINAL RESULT':'NEXT','next','coral')}`:`<div class="property"><small>FOR SALE</small><b>${game.building}</b><span>BUILDING</span></div><h2>お金カードを1枚選択</h2>${button('決定 / BID!','bid','coral')}`}</div>`,'VS CPU');
 }
 function renderSettings() {
   app.innerHTML=shell(`<div class="panel settings"><h1>SETTINGS</h1><label>PLAYER NAME<input id="player-name" type="text" maxlength="12" value="${esc(settings.playerName)}"><small id="name-error">入力後にEnter、または枠外をクリックして保存</small></label><label>MASTER VOLUME <output>${settings.masterVolume}%</output><input id="volume" type="range" min="0" max="100" value="${settings.masterVolume}"></label><div class="setting-row"><span>MUTE <small>現在: ${settings.muted?'ON':'OFF'}</small></span><button class="btn ${settings.muted?'blue':'coral'}" data-action="mute" aria-pressed="${settings.muted}">${settings.muted?'OFF':'ON'}</button></div><div class="menu-grid">${button('HOW TO PLAY','how','yellow')}${button('CREDITS','credits','light')}${button('FEEDBACK ↗','feedback','coral')}${button('BACK','back','light')}</div></div>`,'SETTINGS');
@@ -132,7 +132,7 @@ function renderHow() {
 }
 function renderCredits() { app.innerHTML=shell(`<div class="panel centered credits"><h1>CREDITS</h1><p>CREATOR</p><h2>${esc(CONFIG.creator)}</h2><a class="social-link" href="${esc(CONFIG.creatorSocialUrl)}" target="_blank" rel="noopener noreferrer">X / Twitter @Mih4L_ ↗</a>${button('BACK','back','blue')}</div>`,'CREDITS'); }
 function renderOnlineMenu() { app.innerHTML=shell(`<div class="panel centered"><h1>ONLINE MATCH</h1><p>YOUR NAME<br><strong>${esc(settings.playerName)}</strong></p><div class="stack">${button('RANDOM MATCH','random','coral')}${button('ROOM MATCH','room','blue')}${button('BACK','title','light')}</div></div>`,'VS PLAYER'); }
-function renderRandom() { app.innerHTML=shell(`<div class="panel centered"><h1>RANDOM MATCH</h1><p>YOUR NAME<br><strong>${esc(settings.playerName)}</strong></p><div class="waiting">Waiting: ${esc(online.waiting)} players</div><p>${esc(online.status)}</p>${online.status?button('CANCEL','cancel-search','light'):button('FIND MATCH','find','coral')}${button('BACK','online','light')}<p class="error">${esc(online.error)}</p></div>`,'ONLINE MATCH'); }
+function renderRandom() { app.innerHTML=shell(`<div class="panel centered"><h1>RANDOM MATCH</h1><p>YOUR NAME<br><strong>${esc(settings.playerName)}</strong></p><div class="waiting">Waiting: ${esc(online.waiting)} players</div><p>${esc(online.status)}</p>${online.status?button('CANCEL','cancel-search','light'):button('FIND MATCH','find','coral')}${button('BACK','random-back','light')}<p class="error">${esc(online.error)}</p></div>`,'ONLINE MATCH'); }
 function renderRoom() { app.innerHTML=shell(`<div class="panel centered"><h1>ROOM MATCH</h1><p>YOUR NAME<br><strong>${esc(settings.playerName)}</strong></p>${button('CREATE ROOM','create-room','coral')}${button('JOIN ROOM','join-room','blue')}${button('BACK','online','light')}</div>`,'ONLINE MATCH'); }
 function renderJoin() { app.innerHTML=shell(`<div class="panel centered"><h1>ENTER ROOM CODE</h1><input id="room-code" class="room-code" inputmode="numeric" maxlength="6" placeholder="______"><p>YOUR NAME<br><strong>${esc(settings.playerName)}</strong></p>${button('JOIN','do-join','coral')}${button('BACK','room','light')}<p class="error">${esc(online.error)}</p></div>`,'ROOM MATCH'); }
 function renderWaitingRoom() { app.innerHTML=shell(`<div class="panel centered"><h1>ROOM CODE</h1><div class="code">${esc(online.roomCode)}</div><p>HOST<br><strong>${esc(settings.playerName)}</strong></p><p>WAITING FOR PLAYER...</p>${button('CANCEL','cancel-room','light')}</div>`,'ROOM MATCH'); }
@@ -143,11 +143,11 @@ function renderOnlineGame() {
   if (!s) return;
   const result=online.result, displayRound=result?.round??Math.min(s.round,10);
   const p1=onlinePlayer(you),p2=onlinePlayer(other);
-  const myOptions={selectable:!result,onlineCards:true,disabled:s.submitted,justAcquired:result?.winner===you,highlightBuilding:result?.winner===you?result.building:null};
+  const myOptions={selectable:!result,onlineCards:true,disabled:s.submitted,selectedCard:online.selectedCard,justAcquired:result?.winner===you,highlightBuilding:result?.winner===you?result.building:null};
   const otherOptions={justAcquired:result?.winner===other,highlightBuilding:result?.winner===other?result.building:null};
   const firstName=s.players[you-1].name,secondName=s.players[other-1].name;
   const orderedResult=result&&you===2?{...result,p1Bid:result.p2Bid,p2Bid:result.p1Bid,winner:result.winner===1?2:result.winner===2?1:0}:result;
-  app.innerHTML=shell(`<div class="toolbar">ROUND ${displayRound} / 10 ${button('LEAVE MATCH','leave-match','tiny')}</div><div class="cities">${city(p1,firstName,true,myOptions)}${city(p2,secondName,false,otherOptions)}</div><div class="auction">${result?`${resultPanel(orderedResult,firstName,secondName)}${button('NEXT','online-next','coral')}`:`<div class="property"><small>FOR SALE</small><b>${s.currentBuilding ?? '-'}</b><span>BUILDING</span></div><h2>${s.submitted?'相手の入札を待っています…':'お金カードを1枚選択'}</h2>`}</div>`,'ONLINE MATCH');
+  app.innerHTML=shell(`<div class="toolbar">ROUND ${displayRound} / 10 ${button('LEAVE MATCH','leave-match','tiny')}</div><div class="cities">${city(p1,firstName,true,myOptions)}${city(p2,secondName,false,otherOptions)}</div><div class="auction">${result?`${resultPanel(orderedResult,firstName,secondName)}${button('NEXT','online-next','coral')}`:`<div class="property"><small>FOR SALE</small><b>${s.currentBuilding ?? '-'}</b><span>BUILDING</span></div><h2>${s.submitted?'相手の入札を待っています…':'お金カードを1枚選択'}</h2>${s.submitted?'':`<button class="btn coral" data-action="online-bid" ${online.selectedCard==null?'disabled':''}>決定 / BID!</button>`}`}</div>`,'ONLINE MATCH');
 }
 function renderOnlineFinal() {
   const final=online.final, s=online.match, you=s.you, other=you===1?2:1;
@@ -170,9 +170,9 @@ class NetworkClient {
     if(msg.type==='connected'||msg.type==='queueStatus') online.waiting=msg.waiting;
     if(msg.type==='error'){online.error=msg.message;online.status='';}
     if(msg.type==='roomCreated'){online.roomCode=msg.code;screen='waitingRoom';}
-    if(msg.type==='matchFound'){online.match=msg.state;online.result=null;screen='onlineGame';sound('opencard');}
+    if(msg.type==='matchFound'){online.match=msg.state;online.result=null;online.selectedCard=null;screen='onlineGame';sound('opencard');}
     if(msg.type==='bidAccepted'&&online.match) online.match.submitted=true;
-    if(msg.type==='roundResult'){online.match=msg.state;online.result=msg.result;if(msg.result.winner)sound('billGet');}
+    if(msg.type==='roundResult'){online.match=msg.state;online.result=msg.result;online.selectedCard=null;if(msg.result.winner)sound('billGet');}
     if(msg.type==='gameResult'){online.final=msg.result;}
     if(msg.type==='opponentDisconnected') screen='disconnected';
     render();
@@ -188,13 +188,14 @@ app.addEventListener('click', e => {
     return;
   }
   const onlineCard=e.target.closest('[data-online-card]');
-  if(onlineCard){sound('kettei');net().send('submitBid',{matchId:online.match.matchId,card:Number(onlineCard.dataset.onlineCard)});return;}
+  if(onlineCard){online.selectedCard=Number(onlineCard.dataset.onlineCard);sound('kettei');render();return;}
   const el=e.target.closest('[data-action]'); if(!el)return;
   const action=el.dataset.action; sound('kettei'); online.error='';
   if(action==='cpu')screen='difficulty';
   else if(action.startsWith('diff:')){difficulty=action.split(':')[1];newLocalGame();track('cpuMatchesStarted');screen='local';}
   else if(action==='bid'&&game?.selected!=null){if(wasmCore&&game.wasm){wasmCore.confirm();game=wasmCore.state();if(game.result?.winner)sound('billGet');}else finishLocalRound();}
   else if(action==='next'){if(wasmCore&&game.wasm){wasmCore.advance();game=wasmCore.state();if(game.phase==='bid')sound('opencard');}else if(game.round===10)game.phase='final';else{game.round++;game.building=game.deck[game.round-1];game.result=null;game.phase='bid';sound('opencard');}}
+  else if(action==='leave-local'){if(confirm('CPU対戦を終了してタイトルへ戻りますか？')){game=null;screen='title';screenHistory.length=0;}}
   else if(action==='restart'){if(confirm('対戦を最初からやり直しますか？')){if(wasmCore&&game?.wasm){wasmCore.restart();game=wasmCore.state();sound('opencard');}else newLocalGame();}}
   else if(action==='settings')openScreen('settings');
   else if(action==='how')openScreen('how');
@@ -205,11 +206,13 @@ app.addEventListener('click', e => {
   else if(action==='random'){net().send('getQueueStatus');screen='random';}
   else if(action==='find'){online.status='SEARCHING FOR PLAYER...';net().send('joinQueue');}
   else if(action==='cancel-search'){net().send('leaveQueue');online.status='';}
+  else if(action==='random-back'){net().send('leaveQueue');online.status='';online.error='';screen='online';}
   else if(action==='room')screen='room';
   else if(action==='create-room')net().send('createRoom');
   else if(action==='join-room')screen='join';
   else if(action==='do-join')net().send('joinRoom',{code:document.querySelector('#room-code').value.trim()});
   else if(action==='cancel-room'){net().send('cancelRoom');screen='room';}
+  else if(action==='online-bid'&&online.selectedCard!=null){const card=online.selectedCard;online.selectedCard=null;net().send('submitBid',{matchId:online.match.matchId,card});}
   else if(action==='online-next'){online.result=null;if(online.final){screen='onlineFinal';}else{online.match.submitted=false;sound('opencard');}}
   else if(action==='leave-match'){if(confirm('オンライン対戦から退出しますか？')){net().send('leaveMatch');screen='online';}}
   else if(action==='mute'){settings.muted=!settings.muted;store.save(settings);}
@@ -267,7 +270,4 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
-
-
-
 
