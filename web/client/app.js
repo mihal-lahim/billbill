@@ -9,7 +9,9 @@ const settings = store.load();
 const audio = Object.fromEntries(['kettei','billGet','opencard'].map(name =>
   [name, new Audio(`assets/sounds/${name}.mp3`)]));
 let screen = 'title';
-let backScreen = 'title';
+const screenHistory = [];
+function openScreen(next) { if (screen !== next) screenHistory.push(screen); screen = next; }
+function goBack() { screen = screenHistory.pop() || 'title'; }
 let game = null;
 let difficulty = 'NORMAL';
 let network = null;
@@ -87,9 +89,21 @@ function finishLocalRound() {
 }
 function button(label, action, cls='') { return `<button class="btn ${cls}" data-action="${action}">${label}</button>`; }
 function shell(content, title='') { return `<section class="game-shell"><header><div class="mini-logo">ビルビル <small>BILL BILL</small></div><span>${title}</span></header>${content}</section>`; }
-function city(player, name, active=false) {
-  const buildings=player.buildings.map((v,i)=>`<span class="building" style="--h:${45+v*3}px;--c:${i%2?'#ff786d':'#49aee8'}"><b>${v}</b></span>`).join('');
-  return `<article class="city ${active?'active':''}"><h3>${esc(name)}</h3><div class="skyline">${buildings || '<span class="empty-city">まだ建物がありません</span>'}</div><p>建物 ${player.buildings.length}棟 ・ 合計 ${player.buildings.reduce((a,b)=>a+b,0)}</p><p class="mini-cards">残り ${player.hand.join(' · ')}</p></article>`;
+function moneyRack(player, { selectable=false, onlineCards=false, disabled=false }={}) {
+  return `<div class="money-rack" aria-label="残りお金カード">${MONEY.map(value => {
+    const available=player.hand.includes(value);
+    const selected=!onlineCards&&game?.selected===value;
+    const attr=available&&selectable&&!disabled ? (onlineCards?`data-online-card="${value}"`:`data-card="${value}"`) : 'disabled';
+    return `<button class="money-slot ${available?'available':'used'} ${selected?'selected':''}" ${attr} aria-label="${value}${available?'':' 使用済み'}"><b>${value}</b>${available?'':'<span>×</span>'}</button>`;
+  }).join('')}</div>`;
+}
+function city(player, name, active=false, options={}) {
+  const buildings=player.buildings.map((v,i)=>`<span class="building ${options.highlightBuilding===v?'new-building':''}" style="--h:${45+v*3}px;--c:${i%2?'#ff786d':'#49aee8'}"><b>${v}</b></span>`).join('');
+  return `<article class="city ${active?'active':''} ${options.justAcquired?'just-acquired':''}"><h3>${esc(name)}</h3><div class="skyline">${buildings || '<span class="empty-city">まだ建物がありません</span>'}</div><p>建物 ${player.buildings.length}棟 ・ 合計 ${player.buildings.reduce((a,b)=>a+b,0)}</p><h4>MONEY CARDS</h4>${moneyRack(player,options)}</article>`;
+}
+function resultPanel(result, player1Name, player2Name) {
+  const winnerName=result.winner===1?player1Name:result.winner===2?player2Name:'';
+  return `<div class="round-result"><div class="result-building"><small>BUILDING</small><b>${result.building}</b></div><div class="bid-showdown"><div class="bid-player ${result.winner===1?'round-winner':''}"><strong>${esc(player1Name)}</strong><span class="revealed-money">${result.p1Bid}</span></div><div class="versus">VS</div><div class="bid-player ${result.winner===2?'round-winner':''}"><strong>${esc(player2Name)}</strong><span class="revealed-money">${result.p2Bid}</span></div></div><h2 class="round-outcome">${winnerName?`${esc(winnerName)} GETS THE BUILDING!`:'NO ONE GETS THE BUILDING'}</h2></div>`;
 }
 function renderTitle() {
   app.innerHTML=`<section class="title-screen"><div class="cloud c1"></div><div class="cloud c2"></div><div class="brand"><h1>ビルビル</h1><p>BILL BILL</p></div><nav class="title-menu">${button('VS CPU','cpu','coral')}${button('VS PLAYER','online','blue')}${button('HOW TO PLAY','how','light')}${button('SETTINGS','settings','yellow')}${button('CREDITS','credits','light')}${button('FEEDBACK ↗','feedback','light')}</nav><p class="tagline">カードを選んで、あなただけの街をつくろう。</p><div class="ground"></div></section>`;
@@ -105,11 +119,13 @@ function renderLocal() {
     for(const k of ['count','value','cash']) { if(a[k]>b[k])ap++; else if(b[k]>a[k])bp++; }
     app.innerHTML=shell(`<div class="panel centered"><h1>${ap===bp?'DRAW!':ap>bp?'YOU WIN!':'CPU WINS!'}</h1><div class="score-grid"><div><h2>${esc(p1name)}</h2><p>建物枚数 ${a.count}</p><p>建物合計 ${a.value}</p><p>残金 ${a.cash}</p><strong>${ap} POINTS</strong></div><div><h2>CPU</h2><p>建物枚数 ${b.count}</p><p>建物合計 ${b.value}</p><p>残金 ${b.cash}</p><strong>${bp} POINTS</strong></div></div>${button('PLAY AGAIN','restart','coral')}${button('TITLE','title','light')}</div>`,'FINAL RESULT'); return;
   }
-  const result=game.result;
-  app.innerHTML=shell(`<div class="toolbar">ROUND ${game.round} / 10 ${button('RESTART','restart','tiny')}</div><div class="cities">${city(game.p1,p1name,true)}${city(game.p2,`CPU · ${difficulty}`)}</div><div class="auction"><div class="property"><small>FOR SALE</small><b>${game.building}</b><span>BUILDING</span></div>${result?`<div class="result"><h2>${result.winner===1?'建物を獲得！':result.winner===2?'CPUが獲得':'NO SALE'}</h2><p>${esc(p1name)} ${result.p1Bid}　VS　${result.p2Bid} CPU</p>${button(game.round===10?'FINAL RESULT':'NEXT','next','coral')}</div>`:`<h2>お金カードを1枚選択</h2><div class="hand">${game.p1.hand.map(v=>`<button class="money ${game.selected===v?'selected':''}" data-card="${v}">${v}</button>`).join('')}</div>${button('決定 / BID!','bid','coral')}`}</div>`,'VS CPU');
+  const result=game.result, bidding=!result;
+  const p1Options={selectable:bidding,justAcquired:result?.winner===1,highlightBuilding:result?.winner===1?result.building:null};
+  const p2Options={justAcquired:result?.winner===2,highlightBuilding:result?.winner===2?result.building:null};
+  app.innerHTML=shell(`<div class="toolbar">ROUND ${Math.min(game.round,10)} / 10 ${button('RESTART','restart','tiny')}</div><div class="cities">${city(game.p1,p1name,true,p1Options)}${city(game.p2,`CPU · ${difficulty}`,false,p2Options)}</div><div class="auction">${result?`${resultPanel(result,p1name,'CPU')}${button(game.round===10?'FINAL RESULT':'NEXT','next','coral')}`:`<div class="property"><small>FOR SALE</small><b>${game.building}</b><span>BUILDING</span></div><h2>お金カードを1枚選択</h2>${button('決定 / BID!','bid','coral')}`}</div>`,'VS CPU');
 }
 function renderSettings() {
-  app.innerHTML=shell(`<div class="panel settings"><h1>SETTINGS</h1><label>PLAYER NAME<input id="player-name" maxlength="12" value="${esc(settings.playerName)}"><small id="name-error"></small></label><label>MASTER VOLUME <output>${settings.masterVolume}%</output><input id="volume" type="range" min="0" max="100" value="${settings.masterVolume}"></label><div class="setting-row"><span>MUTE</span>${button(settings.muted?'ON':'OFF','mute',settings.muted?'coral':'blue')}</div><div class="menu-grid">${button('HOW TO PLAY','how','yellow')}${button('CREDITS','credits','light')}${button('FEEDBACK ↗','feedback','coral')}${button('BACK','back','light')}</div></div>`,'SETTINGS');
+  app.innerHTML=shell(`<div class="panel settings"><h1>SETTINGS</h1><label>PLAYER NAME<input id="player-name" type="text" maxlength="12" value="${esc(settings.playerName)}"><small id="name-error">入力後にEnter、または枠外をクリックして保存</small></label><label>MASTER VOLUME <output>${settings.masterVolume}%</output><input id="volume" type="range" min="0" max="100" value="${settings.masterVolume}"></label><div class="setting-row"><span>MUTE <small>現在: ${settings.muted?'ON':'OFF'}</small></span><button class="btn ${settings.muted?'blue':'coral'}" data-action="mute" aria-pressed="${settings.muted}">${settings.muted?'OFF':'ON'}</button></div><div class="menu-grid">${button('HOW TO PLAY','how','yellow')}${button('CREDITS','credits','light')}${button('FEEDBACK ↗','feedback','coral')}${button('BACK','back','light')}</div></div>`,'SETTINGS');
 }
 function renderHow() {
   app.innerHTML=shell(`<div class="panel rules"><h1>HOW TO PLAY</h1><ol><li>毎ラウンド、建物カードが1枚公開されます。</li><li>両プレイヤーがお金カードを1枚選びます。</li><li>建物価格より高く、相手より高い札を出した側が獲得します。</li><li>使用した札は勝敗に関係なく消費されます。</li><li>同額、または両者とも建物価格以下なら誰も獲得しません。</li><li>全10ラウンド後、建物枚数・価値合計・残金の3項目で勝敗を決めます。</li></ol><div class="example"><span class="money static">15</span><b>＞</b><span class="property small"><b>12</b></span><b>＆</b><span class="money static red">13</span><p>15は建物12より高く、相手の13より高いので建物を獲得！</p></div>${button('BACK','back','blue')}</div>`,'HOW TO PLAY');
@@ -125,7 +141,13 @@ function onlinePlayer(n) { const s=online.match; return { hand:s.hands[n], build
 function renderOnlineGame() {
   const s=online.match, you=s.you, other=you===1?2:1;
   if (!s) return;
-  app.innerHTML=shell(`<div class="toolbar">ROUND ${Math.min(s.round,10)} / 10 ${button('LEAVE MATCH','leave-match','tiny')}</div><div class="cities">${city(onlinePlayer(you),s.players[you-1].name,true)}${city(onlinePlayer(other),s.players[other-1].name)}</div><div class="auction"><div class="property"><small>FOR SALE</small><b>${s.currentBuilding ?? '-'}</b><span>BUILDING</span></div>${online.result?`<div class="result"><h2>${online.result.winner===you?'建物を獲得！':online.result.winner===0?'NO SALE':'相手が獲得'}</h2><p>${online.result.p1Bid} VS ${online.result.p2Bid}</p>${button('NEXT','online-next','coral')}</div>`:`<h2>${s.submitted?'相手の入札を待っています…':'お金カードを1枚選択'}</h2><div class="hand">${s.hands[you].map(v=>`<button class="money" data-online-card="${v}" ${s.submitted?'disabled':''}>${v}</button>`).join('')}</div>`}</div>`,'ONLINE MATCH');
+  const result=online.result, displayRound=result?.round??Math.min(s.round,10);
+  const p1=onlinePlayer(you),p2=onlinePlayer(other);
+  const myOptions={selectable:!result,onlineCards:true,disabled:s.submitted,justAcquired:result?.winner===you,highlightBuilding:result?.winner===you?result.building:null};
+  const otherOptions={justAcquired:result?.winner===other,highlightBuilding:result?.winner===other?result.building:null};
+  const firstName=s.players[you-1].name,secondName=s.players[other-1].name;
+  const orderedResult=result&&you===2?{...result,p1Bid:result.p2Bid,p2Bid:result.p1Bid,winner:result.winner===1?2:result.winner===2?1:0}:result;
+  app.innerHTML=shell(`<div class="toolbar">ROUND ${displayRound} / 10 ${button('LEAVE MATCH','leave-match','tiny')}</div><div class="cities">${city(p1,firstName,true,myOptions)}${city(p2,secondName,false,otherOptions)}</div><div class="auction">${result?`${resultPanel(orderedResult,firstName,secondName)}${button('NEXT','online-next','coral')}`:`<div class="property"><small>FOR SALE</small><b>${s.currentBuilding ?? '-'}</b><span>BUILDING</span></div><h2>${s.submitted?'相手の入札を待っています…':'お金カードを1枚選択'}</h2>`}</div>`,'ONLINE MATCH');
 }
 function renderOnlineFinal() {
   const final=online.final, s=online.match, you=s.you, other=you===1?2:1;
@@ -174,10 +196,10 @@ app.addEventListener('click', e => {
   else if(action==='bid'&&game?.selected!=null){if(wasmCore&&game.wasm){wasmCore.confirm();game=wasmCore.state();if(game.result?.winner)sound('billGet');}else finishLocalRound();}
   else if(action==='next'){if(wasmCore&&game.wasm){wasmCore.advance();game=wasmCore.state();if(game.phase==='bid')sound('opencard');}else if(game.round===10)game.phase='final';else{game.round++;game.building=game.deck[game.round-1];game.result=null;game.phase='bid';sound('opencard');}}
   else if(action==='restart'){if(confirm('対戦を最初からやり直しますか？')){if(wasmCore&&game?.wasm){wasmCore.restart();game=wasmCore.state();sound('opencard');}else newLocalGame();}}
-  else if(action==='settings'){backScreen=screen;screen='settings';}
-  else if(action==='how'){backScreen=screen;screen='how';}
-  else if(action==='credits'){backScreen=screen;screen='credits';}
-  else if(action==='back')screen=backScreen;
+  else if(action==='settings')openScreen('settings');
+  else if(action==='how')openScreen('how');
+  else if(action==='credits')openScreen('credits');
+  else if(action==='back')goBack();
   else if(action==='feedback')window.open(CONFIG.feedbackUrl,'_blank','noopener,noreferrer');
   else if(action==='online'){net().send('getQueueStatus');screen='online';}
   else if(action==='random'){net().send('getQueueStatus');screen='random';}
@@ -191,16 +213,21 @@ app.addEventListener('click', e => {
   else if(action==='online-next'){online.result=null;if(online.final){screen='onlineFinal';}else{online.match.submitted=false;sound('opencard');}}
   else if(action==='leave-match'){if(confirm('オンライン対戦から退出しますか？')){net().send('leaveMatch');screen='online';}}
   else if(action==='mute'){settings.muted=!settings.muted;store.save(settings);}
-  else if(action==='title')screen='title';
+  else if(action==='title'){screen='title';screenHistory.length=0;}
   render();
 });
+function savePlayerName(input) {
+  const checked=validateName(input.value),error=document.querySelector('#name-error');
+  if (!checked.ok) { error.textContent=checked.error; return false; }
+  settings.playerName=checked.value; input.value=checked.value; store.save(settings); error.textContent='Saved';
+  if(network)network.send('setPlayerName',{name:settings.playerName});
+  return true;
+}
+app.addEventListener('change',e=>{if(e.target.id==='player-name')savePlayerName(e.target);});
+app.addEventListener('keydown',e=>{if(e.target.id==='player-name'&&e.key==='Enter'){e.preventDefault();savePlayerName(e.target);e.target.blur();}});
 app.addEventListener('input', e => {
   if(e.target.id==='volume'){settings.masterVolume=Number(e.target.value);store.save(settings);e.target.previousElementSibling.textContent=`${settings.masterVolume}%`;}
-  if(e.target.id==='player-name'){
-    const checked=validateName(e.target.value);const error=document.querySelector('#name-error');
-    if(checked.ok){settings.playerName=checked.value;store.save(settings);error.textContent='Saved';if(network)network.send('setPlayerName',{name:settings.playerName});}
-    else error.textContent=checked.error;
-  }
+
 });
 
 render();
