@@ -126,7 +126,7 @@ function renderLocal() {
   app.innerHTML=shell(`<div class="toolbar">ラウンド ${Math.min(game.round,10)} / 10 ${button('対戦を終了','leave-local','tiny')}</div><div class="cities">${city(game.p1,p1name,true,p1Options)}${city(game.p2,`CPU・${difficultyLabel(difficulty)}`,false,p2Options)}</div><div class="auction">${result?`${resultPanel(result,p1name,'CPU')}${button(game.round===10?'最終結果':'次へ','next','coral')}`:`<div class="property"><small>今回の建物</small><b>${game.building}</b></div><h2>お金カードを1枚選択</h2>${button('決定','bid','coral')}`}</div>`,'CPU対戦');
 }
 function renderSettings() {
-  app.innerHTML=shell(`<div class="panel settings"><h1>設定</h1><label>プレイヤー名<input id="player-name" type="text" maxlength="12" value="${esc(settings.playerName)}"><small id="name-error">入力後にエンターキー、または枠外をクリックして保存</small></label><label>マスター音量 <output>${settings.masterVolume}%</output><input id="volume" type="range" min="0" max="100" value="${settings.masterVolume}"></label><div class="setting-row"><span>ミュート <small>現在: ${settings.muted?'オン':'オフ'}</small></span><button class="btn ${settings.muted?'blue':'coral'}" data-action="mute" aria-pressed="${settings.muted}">${settings.muted?'オフ':'オン'}</button></div><div class="menu-grid">${button('遊び方','how','yellow')}${button('クレジット','credits','light')}${button('感想・不具合報告 ↗','feedback','coral')}${button('戻る','back','light')}</div></div>`,'設定');
+  app.innerHTML=shell(`<div class="panel settings"><h1>設定</h1><label>プレイヤー名<input id="player-name" type="text" maxlength="12" value="${esc(settings.playerName)}"><small id="name-error">入力後にエンターキー、または枠外をクリックして保存</small></label><label>マスター音量 <output>${settings.masterVolume}%</output><input id="volume" type="range" min="0" max="100" value="${settings.masterVolume}"></label><div class="setting-row"><span>ミュート <small>現在: ${settings.muted?'オン':'オフ'}</small></span><button class="btn ${settings.muted?'blue':'coral'}" data-action="mute" aria-pressed="${settings.muted}">${settings.muted?'オフ':'オン'}</button></div><div class="menu-grid">${button('戻る','back','light')}</div></div>`,'設定');
 }
 function renderHow() {
   app.innerHTML=shell(`<div class="panel rules"><h1>遊び方</h1><ol><li>毎ラウンド、建物カードが1枚公開されます。</li><li>両プレイヤーがお金カードを1枚選びます。</li><li>建物価格より高く、相手より高いカードを出した側が獲得します。</li><li>使用したカードは勝敗に関係なく消費されます。</li><li>同額、または両者とも建物価格以下なら誰も獲得しません。</li><li>全10ラウンド後、建物枚数・価値合計・残金の3項目で勝敗を決めます。</li></ol><div class="example"><span class="money static">15</span><b>＞</b><span class="property small"><b>12</b></span><b>＆</b><span class="money static red">13</span><p>15は建物12より高く、相手の13より高いので建物を獲得！</p></div>${button('戻る','back','blue')}</div>`,'遊び方');
@@ -271,6 +271,7 @@ if (modelContext?.registerTool) {
     execute(){return {screen,round:game?.round??null,difficulty:game?difficulty:null};},
   },{signal:toolsLifecycle.signal})).catch(()=>{});
 }
+
 
 
 
